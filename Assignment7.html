@@ -1,0 +1,572 @@
+<head>
+	<title>Assignment 7</title>
+	<meta charset="UTF-8">
+</head>
+<body>
+<br>
+<canvas id="myCanvas" width="1000" height="500" style="border:1px solid #cccccc;"></canvas>
+
+<script type="text/javascript">
+
+class Sprite
+{
+	constructor(new_x, new_y, w, h)
+	{
+		this.x = new_x;
+		this.y = new_y;
+		
+		this.width = w;
+		this.height = h;
+	}
+	
+	isTube()     { return false; }
+	isMario()	 { return false; }
+	isGoomba()    { return false; }
+	isFireball() { return false; }
+
+}
+
+class Mario extends Sprite
+{
+	constructor(x, y, m) 
+	{
+		super(x, y, 60, 95);
+		
+		this.px = 0;
+		this.py = 0;
+		
+		this.numFrames = 0;
+		this.marioOffset = 100;
+		
+		this.marioImages = [];
+		this.marioImageNum = 0;
+		
+		this.vert_vel = 0.0;
+		
+		this.model = m;
+		
+		this.direction = 1;
+		
+		this.marioImages[0] = new Image();
+		this.marioImages[0].src = "mario1.png";
+		this.marioImages[1] = new Image();
+		this.marioImages[1].src = "mario2.png";
+		this.marioImages[2] = new Image();
+		this.marioImages[2].src = "mario3.png";
+		this.marioImages[3] = new Image();
+		this.marioImages[3].src = "mario4.png";
+		this.marioImages[4] = new Image();
+		this.marioImages[4].src = "mario5.png";
+		
+		this.image1 = this.marioImages[0];
+	}
+	
+	jump()
+	{
+		if(this.numFrames < 5)
+		{
+			this.vert_vel=-15;
+		}
+	}
+	
+	update()
+	{
+		this.image1 = this.marioImages[this.marioImageNum];
+		
+		this.numFrames++;
+		
+		this.vert_vel+=0.8;
+		this.y+= this.vert_vel;
+		
+		if(this.y >= 400 - this.height)
+		{
+			this.vert_vel = 0.0;
+			this.y = 400 - this.height;
+			this.numFrames = 0;		
+		}	
+	}
+	
+	updateImage()
+	{
+		this.marioImageNum++;
+		if(this.marioImageNum > 4)
+			this.marioImageNum = 0;
+	}
+	
+	saveLastCoordinates()
+	{
+		this.px = this.x;
+		this.py = this.y;
+	}
+	
+	getOutOfTube(t)
+	{
+		//getting out of tube if mario on left side 
+		if(this.x+this.width >= t.x && this.px + this.width <= t.x)
+         {
+			this.x = t.x - this.width;	 	
+		 } 
+
+        //getting out of tube if mario on right side
+        if(this.x <= t.x+t.width && this.px >= t.x + t.width)
+        {
+            this.x = t.x + t.width;
+        }
+
+        //getting out of tube if mario on bottom side
+        if(this.y <= t.height +t.y && this.py >= t.y + t.height)
+        {  
+			this.y = t.y + t.height;
+		}
+        
+        //getting out of tube if mario on upper side
+        if(this.y+this.height >= t.y && this.py+this.height <= t.y)
+        {
+        	this.numFrames = 0;
+        	this.vert_vel = 0;
+			this.y = t.y - this.height;	
+		}
+	}
+	
+	isMario()	 { return true; }
+}
+
+class Tube extends Sprite
+{
+	constructor(x, y, m)
+	{
+		super(x, y, 55, 400);
+		this.model = m;
+		
+		this.tubeImage = new Image();
+		this.tubeImage.src = "tube.png";
+		
+		this.image1 = this.tubeImage;
+	}
+	
+	update()
+	{
+	 
+	}
+	
+	isTube()	 { return true; }
+
+}
+
+class Goomba extends Sprite
+{
+	constructor(x, y, m)
+	{
+		super(x, y, 55, 400);
+		this.model = m;
+		
+		this.px = 0;
+		this.py = 0;
+		
+		this.goombaHealth = 42;
+		this.isOnFire = false;
+		
+		this.direction = 1;
+		
+		this.goombaFireImage = new Image();
+		this.goombaFireImage.src = "goomba_fire.png";
+
+		this.goombaImage = new Image();
+		this.goombaImage.src = "goomba.png";	
+		this.image1 = this.goombaImage;
+	}
+	
+	saveLastCoordinates()
+	{
+		this.px = this.x;
+		this.py = this.y;
+	}
+	
+	update()
+	{
+		this.saveLastCoordinates();
+		
+		if(!this.isOnFire)
+		{
+			this.x+=5*this.direction;
+		}
+		else
+			this.x+=0;
+		
+		for (let i = 0; i < this.model.sprites.length; i++)
+		{
+			if(this.model.sprites[i] instanceof Tube)
+			{
+				if (this.collide(this.model.sprites[i]))
+				{
+					this.getOutOfTube(this.model.sprites[i]);
+				}
+			}	
+		}
+		
+		if(this.isOnFire)
+		{
+			console.log(this.goombaHealth);
+			this.goombaHealth -= 1;
+
+			this.image1 = this.goombaFireImage;
+		} 
+	}
+	
+	collide (a)
+	{
+		if(this.x+this.width < a.x) //left side
+		{	
+			return false;
+		}			
+		if(this.x > a.x+a.width) // right side
+		{	
+			return false;
+		}	
+		if(this.y+this.height < a.y) // top side
+		{	
+			return false;
+		}						
+		return true;	
+	}
+	
+	getOutOfTube (s)
+	{
+		//getting out of tube if goomba on left side 
+		if(this.x + this.width >= s.x && this.px + this.width <= s.x)
+         {
+			this.x = s.x - this.width;
+			this.direction = this.direction*-1;
+		 } 
+
+        //getting out of tube if goomba on right side
+        if(this.x <= s.x + s.width && this.px >= s.x + s.width)
+        {
+            this.x = s.x + s.width;
+            this.direction = this.direction*-1;
+        }
+        //getting out of tube if mario on upper side
+        if(this.y+this.height >= s.y && this.py+this.height <= s.y)
+        {
+        	vert_vel = 0;
+			this.y = s.y - this.height;	
+		}
+	}
+	
+	setOnFire()
+	{
+		this.isOnFire = true;
+	}
+	
+	getHealth()
+	{
+		return this.goombaHealth;	
+	}
+	
+	isGoomba()    { return true; }
+}
+
+class Fireball extends Sprite
+{
+	constructor(x, y, m)
+	{
+		super(x, y, 37, 37);
+		
+		this.model = m;
+		
+		this.px = 0;
+		this.py = 0;
+		
+		this.vert_vel = -40.0;
+		this.fireballSpeed = 15;
+		this.direction = 1;
+		
+		this.fireImage = new Image();
+		this.fireImage.src = "fireball.png";
+		
+		this.image1 = this.fireImage;
+	
+	}
+
+	update()
+	{ 
+		this.x+=this.fireballSpeed * this.direction;
+		this.vert_vel += 8.0;
+		this.y+=this.vert_vel;
+		
+		this.saveLastCoordinates();
+		
+		if(this.y > 395)
+		{
+			this.vert_vel = -30.3;
+			this.y = 350 - this.height;
+		}
+		
+		for (let i = 0; i < this.model.sprites.length; i++)
+		{
+			if(this.model.sprites[i] instanceof Goomba)
+			{
+				if (this.collide(this.model.sprites[i]))
+				{
+					this.model.sprites[i].setOnFire();
+				}
+			}	
+		}	
+	}
+
+	collide (a)
+	{
+		if(this.x + this.width < a.x) //left side
+		{	
+			return false;
+		}			
+		if(this.x > a.x + a.width) // right side
+		{	
+			return false;
+		}	
+		if(this.y + this.height < a.y) // top side
+		{	
+			return false;
+		}						
+		return true;	
+	}
+		
+	saveLastCoordinates()
+	{
+		this.px = this.x;
+		this.py = this.y;
+	}
+	
+	isFireball() { return false; }
+}
+
+class Model
+{
+	constructor()
+	{
+		//pushing all the sprites
+		this.sprites = [];
+		
+		this.mario = new Mario(100 , 206 , this);
+		this.sprites.push(this.mario);
+		
+		this.tube = new Tube (111, 350, this);
+		this.sprites.push(this.tube);
+		
+		this.tube = new Tube (294, 308, this);
+		this.sprites.push(this.tube);
+		
+		this.tube = new Tube (945, 318, this);
+		this.sprites.push(this.tube);
+		
+		this.tube = new Tube (645, 290, this);
+		this.sprites.push(this.tube);
+		
+		this.goomba = new Goomba (500, 357, this);
+		this.sprites.push(this.goomba);
+		
+		this.goomba = new Goomba (590, 357, this);
+		this.sprites.push(this.goomba);
+		
+		this.goomba = new Goomba (200, 357, this);
+		this.sprites.push(this.goomba);
+		
+		this.goomba = new Goomba (700, 357, this);
+		this.sprites.push(this.goomba);
+		
+		this.fireballCount =0;
+	}
+
+	update()
+	{
+		for(let i = 0; i < this.sprites.length; i++)
+		{
+			this.sprites[i].update();
+		
+			if(this.sprites[i] instanceof Tube)
+			{
+				let t= this.sprites[i];
+				if (this.collide(this.mario,t))
+				{
+					console.log(this.sprites.length);
+					this.mario.getOutOfTube(t);
+				}
+			}
+
+			if(this.sprites[i] instanceof Goomba) 
+			{
+				if(this.sprites[i].goombaHealth === 0)
+				{
+					this.sprites.splice(i, 1);
+				}
+			}
+		}
+		this.fireballCount++;	
+	}
+	
+	collide(a, b)
+	{
+		if(a.x+a.width < b.x) //left side
+		{
+			return false;
+		}			
+		if(a.x > b.x+b.width) // right side
+		{	
+			return false;
+		}	
+		if(a.y > b.y+b.height) //bottom side
+		{	
+			return false;
+		}		
+		if(a.y+a.height < b.y) // top side
+		{	
+			return false;
+		}												
+		return true;	
+	}
+	
+	addFireball()
+	{
+		if(this.fireballCount > 5) 
+		{
+			this.fireball = new Fireball (this.mario.x + this.mario.width, this.mario.y, this);
+			this.sprites.push(this.fireball);
+			
+			this.fireballCount = 0;
+		}
+	}
+}
+
+class View
+{
+	constructor(model)
+	{
+		this.model = model;
+		this.canvas = document.getElementById("myCanvas");
+	}
+
+	update()
+	{
+		let ctx = this.canvas.getContext("2d");
+		ctx.clearRect(0, 0, 1000, 596);
+		
+		ctx.fillStyle = 'SkyBlue';
+		ctx.fillRect(0, 0, 1000, 596);
+
+		ctx.fillStyle = 'green';
+		ctx.fillRect(0, 400, 1000, 596);
+		
+		console.log(this.model.sprites.length);
+		
+		for(let i = 0; i < this.model.sprites.length; i++)
+		{
+			let sprite = this.model.sprites[i];
+			if(sprite instanceof Mario)
+			{
+				if(sprite.direction == 1)
+					ctx.drawImage(sprite.image1, this.model.mario.marioOffset, sprite.y);
+				else
+				{
+					ctx.save();
+					ctx.translate(100 + this.model.mario.marioOffset + this.model.mario.width , 0);
+					ctx.scale(-1, 1);
+					ctx.drawImage(sprite.image1, this.model.mario.marioOffset, sprite.y);
+					ctx.restore();
+				}
+			}
+			else
+				ctx.drawImage(sprite.image1, sprite.x - this.model.mario.x + this.model.mario.marioOffset, sprite.y);
+		}
+	}
+}
+
+class Controller
+{
+	constructor(model, view)
+	{
+		this.model = model;
+		this.view = view;
+		
+		this.key_right = false;
+		this.key_left = false;
+		this.key_up = false;
+		this.key_down = false;
+		this.space_bar = false;
+		this.ctrl = false;
+		let self = this;
+		
+		document.addEventListener('keydown', function(event) { self.keyDown(event); }, false);
+		document.addEventListener('keyup', function(event) { self.keyUp(event); }, false);
+	}
+
+	keyDown(event)
+	{
+		if(event.keyCode == 39) this.key_right = true;
+		else if(event.keyCode == 37) this.key_left = true;
+		else if(event.keyCode == 38) this.key_up = true;
+		else if(event.keyCode == 40) this.key_down = true;
+		else if(event.keyCode == 32) this.space_bar = true;
+		else if(event.keyCode == 17) this.ctrl = true;
+	}
+
+	keyUp(event)
+	{
+		if(event.keyCode == 39) this.key_right = false;
+		else if(event.keyCode == 37) this.key_left = false;
+		else if(event.keyCode == 38) this.key_up = false;
+		else if(event.keyCode == 40) this.key_down = false;
+		else if(event.keyCode == 32) this.space_bar = false;
+		else if(event.keyCode == 17) this.ctrl = false;
+	}
+
+	update()
+	{
+		this.model.mario.saveLastCoordinates();
+		
+		if(this.key_right)
+		{	
+			this.model.mario.x+=6;
+			this.model.mario.updateImage();
+			this.model.mario.direction = 1;
+		}
+		if(this.key_left)
+		{
+			this.model.mario.x-=6;
+			this.model.mario.updateImage();
+			this.model.mario.direction = 0;
+		
+		}
+		if(this.key_up || this.space_bar)
+		{
+			this.model.mario.jump();
+		}
+		if(this.ctrl)
+		{
+			this.model.addFireball();
+		}
+	}
+}
+
+class Game
+{
+	constructor()
+	{
+		this.model = new Model();
+		this.view = new View(this.model);
+		this.controller = new Controller(this.model, this.view);
+	}
+
+	onTimer()
+	{
+		this.controller.update();
+		this.model.update();
+		this.view.update();
+	}
+}
+
+let game = new Game();
+let timer = setInterval(function() { game.onTimer(); }, 40);
+
+</script>
+
+</body>
